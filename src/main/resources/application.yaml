@@ -11,17 +11,22 @@ spring:
     password: nbuser
     driver-class-name: org.postgresql.Driver
 
+  # 1. JPA Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: validate   # change to update only during early dev if needed
+      ddl-auto: update   # Use 'update' to automatically create your User/Role tables
     open-in-view: false
-    show-sql: false
+    show-sql: true       # Turned on so you can see the table creation in logs
     properties:
       hibernate:
         format_sql: true
         jdbc:
           time_zone: UTC
+
+  # 2. Disable Flyway temporarily if you don't have migration scripts yet
+  flyway:
+    enabled: false
 
   jackson:
     time-zone: UTC
@@ -31,17 +36,13 @@ spring:
 logging:
   level:
     root: INFO
-    org.hibernate.SQL: DEBUG          # SQL logs
-    org.hibernate.orm.jdbc.bind: TRACE # parameters
+    org.springframework.security: DEBUG # Added to help debug JWT issues
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
 
-
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    locations: classpath:db/migration
-
-
-  jpa:
-    hibernate:
-      ddl-auto: validate   # IMPORTANT: Flyway owns schema
-
+application:
+  security:
+    jwt:
+      secret-key: Zk1pM1F1aVhNQmZ0R2pXb0RrZ3dJdU9oWk1vY1Z4cW1Xb1E=
+      expiration: 86400000
+      refresh-expiration: 604800000

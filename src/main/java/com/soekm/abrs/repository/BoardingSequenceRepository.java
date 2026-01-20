@@ -3,6 +3,7 @@ package com.soekm.abrs.repository;
 import com.soekm.abrs.entity.BoardingSequence;
 import com.soekm.abrs.entity.enums.BoardingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
@@ -31,5 +32,17 @@ public interface BoardingSequenceRepository
 
     long countByFlightIdAndStatus(Long flightId, BoardingStatus boardingStatus);
 
-
+    @Modifying
+    @org.springframework.transaction.annotation.Transactional
+    @Query("""
+        UPDATE BoardingSequence s 
+        SET s.status = :missingStatus 
+        WHERE s.flight.id = :flightId 
+        AND s.status = :waitingStatus
+    """)
+    void updateStatusForNoShows(
+            Long flightId,
+            BoardingStatus waitingStatus,
+            BoardingStatus missingStatus
+    );
 }

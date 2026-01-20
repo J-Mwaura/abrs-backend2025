@@ -41,7 +41,7 @@ public class BoardingSequence {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     @Builder.Default
-    private BoardingStatus status = BoardingStatus.EXPECTED;
+    private BoardingStatus status = BoardingStatus.CHECKED_IN;
 
     @Column(name = "note")
     private String note; // "No-show", "Late arrival", etc.

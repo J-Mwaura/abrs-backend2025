@@ -19,4 +19,11 @@ public interface IFlightService {
     FlightDTO getFlight(Long id);
 
     List<FlightDTO> findAll();
+
+    FlightDTO openBoarding(Long flightId);
+
+    FlightDTO closeFlight(Long flightId);
+
+    void deleteFlightAfterManifest(Long flightId);
+    String getFlightStatus(Long flightId);
 }

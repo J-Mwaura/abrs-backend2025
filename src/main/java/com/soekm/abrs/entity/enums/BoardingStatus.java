@@ -6,7 +6,6 @@ package com.soekm.abrs.entity.enums;
  */
 
 public enum BoardingStatus {
-    EXPECTED,   // Checked-in
     BOARDED,    // Successfully boarded
     CHECKED_IN,
     MISSING     // Not boarded after final call

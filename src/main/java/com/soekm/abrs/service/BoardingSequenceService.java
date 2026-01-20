@@ -7,6 +7,7 @@ import com.soekm.abrs.entity.BoardingSequence;
 import com.soekm.abrs.entity.Flight;
 import com.soekm.abrs.entity.enums.BoardingEventType;
 import com.soekm.abrs.entity.enums.BoardingStatus;
+import com.soekm.abrs.entity.enums.FlightStatus;
 import com.soekm.abrs.repository.BoardingEventRepository;
 import com.soekm.abrs.repository.BoardingSequenceRepository;
 import com.soekm.abrs.repository.FlightRepository;
@@ -61,27 +62,22 @@ public class BoardingSequenceService implements IBoardingSequenceService {
         // Note: No need for repository.save() because of @Transactional "Dirty Checking"
     }
 
-    @Override
     @Transactional
     public void undoBoarding(Long flightId, Integer sequenceNumber) {
-        // 1. Fetch the sequence
-        BoardingSequence sequence = sequenceRepository
-                .findByFlightIdAndSequenceNumber(flightId, sequenceNumber)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Sequence #" + sequenceNumber + " not found for Flight ID: " + flightId));
+        Flight flight = flightRepository.findById(flightId)
+                .orElseThrow(() -> new EntityNotFoundException("Flight not found"));
 
-        // 2. State Validation
-        if (sequence.getStatus() != BoardingStatus.BOARDED) {
-            throw new IllegalStateException("Passenger is not boarded. Current status: " + sequence.getStatus());
+        // Critical Guard: Block undo if closed
+        if (FlightStatus.BOARDING_CLOSED.equals(flight.getStatus())) {
+            throw new IllegalStateException("Cannot undo boarding. The flight is already closed.");
         }
 
-        // 3. Revert Status back to CHECKED_IN
+        BoardingSequence sequence = sequenceRepository
+                .findByFlightIdAndSequenceNumber(flightId, sequenceNumber)
+                .orElseThrow(() -> new EntityNotFoundException("Sequence not found"));
+
         sequence.setStatus(BoardingStatus.CHECKED_IN);
-
-        // 4. Log the Audit Event
-        logEvent(sequence, BoardingEventType.UNDO_BOARDED, "Boarding undone - passenger reverted to checked-in");
-
-        // Note: No need for repository.save() because of @Transactional "Dirty Checking"
+        sequenceRepository.save(sequence);
     }
 
     @Override
@@ -134,6 +130,14 @@ public class BoardingSequenceService implements IBoardingSequenceService {
     @Override
     public List<BoardingSequenceDTO> getBoardedPassengers(Long flightId) {
         return sequenceRepository.findByFlightIdAndStatus(flightId, BoardingStatus.BOARDED)
+                .stream()
+                .map(sequenceMapper::toDTO)
+                .toList();
+    }
+
+    @Override
+    public List<BoardingSequenceDTO> getNoShowPassengers(Long flightId) {
+        return sequenceRepository.findByFlightIdAndStatus(flightId, BoardingStatus.MISSING)
                 .stream()
                 .map(sequenceMapper::toDTO)
                 .toList();

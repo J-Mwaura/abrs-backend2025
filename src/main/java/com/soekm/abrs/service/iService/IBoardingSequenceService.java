@@ -14,21 +14,27 @@ import java.util.Map;
 
 public interface IBoardingSequenceService {
 
-    /** BOARDING */
+
+
+    // BOARDING - Only works if flight is in BOARDING_OPEN status
     void board(Long flightId, Integer sequenceNumber);
 
-    /** UNDO BOARDING */
+    // UNDO BOARDING
     void undoBoarding(Long flightId, Integer sequenceNumber);
 
-    /** GAP FINDER */
+    // GAP FINDER
     List<Integer> findMissing(Long flightId);
 
     void addNote(Long flightId, Integer sequenceNumber, String note);
 
-    // Add this to your Service to support the "Boarding Gate" view
+    // Get CHECKED_IN passengers
     List<BoardingSequenceDTO> getCheckedInPassengers(Long flightId);
 
     // Get BOARDED passengers
     List<BoardingSequenceDTO> getBoardedPassengers(Long flightId);
+
+    // Get NO_SHOW passengers (after boarding is closed)
+    List<BoardingSequenceDTO> getNoShowPassengers(Long flightId);
+
     Map<String, Object> getBoardingStats(Long flightId);
 }
