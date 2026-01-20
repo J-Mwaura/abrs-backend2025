@@ -76,8 +76,11 @@ public class SecurityConfig {
             allOrigins.addAll(Arrays.asList(allowedOrigins));
         }
 
+        allOrigins.add("https://abrs2026.netlify.app");
+
         // Enhanced mobile app origins for Capacitor/Ionic
         List<String> mobileOrigins = Arrays.asList(
+                "https://abrs2026.netlify.app",
                 "capacitor://localhost",
                 "ionic://localhost",
                 "http://localhost",
@@ -119,19 +122,5 @@ public class SecurityConfig {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
-//    @Bean
-//    public CorsConfigurationSource corsConfigurationSource() {
-//        CorsConfiguration config = new CorsConfiguration();
-//
-//        config.setAllowedOrigins(List.of("http://localhost:4200"));
-//        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-//        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
-//        config.setAllowCredentials(true);
-//
-//        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-//        source.registerCorsConfiguration("/**", config);
-//
-//        return source;
-//    }
 
 }
