@@ -2,8 +2,7 @@ server:
   port: ${PORT:8080} # Heroku will provide the PORT dynamically
 
 cors:
-  allowed-origins: https://abrs2026.netlify.app
-
+  allowed-origins: https://abrs2026.netlify.app,http://localhost,file://,content://,capacitor://,ionic://,http://localhost:4200,http://localhost:8100
 spring:
   application:
     name: abrs
