@@ -39,7 +39,7 @@ public class BoardingEvent {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "staff_user_id")
-    private StaffUser staffUser; // nullable for now
+    private AppUser staffUser; // nullable for now
 
     @Column(name = "details")
     private String details;

@@ -1,30 +1,33 @@
 server:
-  port: 8080
+  port: ${PORT:8080} # Heroku will provide the PORT dynamically
+
+cors:
+  allowed-origins: https://abrs2026.netlify.app
 
 spring:
   application:
     name: abrs
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/abrs_db
-    username: postgres
-    password: nbuser
+    # Use environment variables for Heroku/Production
+    url: ${JDBC_DATABASE_URL:jdbc:postgresql://localhost:5432/abrs_db}
+    username: ${JDBC_DATABASE_USERNAME:postgres}
+    password: ${JDBC_DATABASE_PASSWORD:nbuser}
     driver-class-name: org.postgresql.Driver
 
-  # 1. JPA Configuration
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update   # Use 'update' to automatically create your User/Role tables
+      # Changed to 'none' or 'validate' if you've already run your SQL script
+      ddl-auto: update
     open-in-view: false
-    show-sql: true       # Turned on so you can see the table creation in logs
+    show-sql: true
     properties:
       hibernate:
         format_sql: true
         jdbc:
           time_zone: UTC
 
-  # 2. Disable Flyway temporarily if you don't have migration scripts yet
   flyway:
     enabled: false
 
@@ -36,13 +39,13 @@ spring:
 logging:
   level:
     root: INFO
-    org.springframework.security: DEBUG # Added to help debug JWT issues
+    org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.orm.jdbc.bind: TRACE
 
 application:
   security:
     jwt:
-      secret-key: Zk1pM1F1aVhNQmZ0R2pXb0RrZ3dJdU9oWk1vY1Z4cW1Xb1E=
-      expiration: 86400000
-      refresh-expiration: 604800000
+      secret-key: ${JWT_SECRET:Zk1pM1F1aVhNQmZ0R2pXb0RrZ3dJdU9oWk1vY1Z4cW1Xb1E=}
+      expiration: 86400000 # 1 day
+      refresh-expiration: 604800000 # 7 days
