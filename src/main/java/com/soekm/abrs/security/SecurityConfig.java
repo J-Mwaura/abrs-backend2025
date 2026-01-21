@@ -36,27 +36,25 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 1. Force CORS to be processed FIRST
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-
-                .authorizeHttpRequests(auth -> auth
-                        // ✅ Always allow preflight
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                        // Public auth endpoints
-                        .requestMatchers("/api/auth/**").permitAll()
-                        // Protected APIs
-                        .requestMatchers("/api/flights/**").authenticated()
-                        .requestMatchers("/api/boarding/**").authenticated()
-                        .requestMatchers("/api/reports/**").hasAnyAuthority("USER", "SUPERVISOR")
-
-                        .anyRequest().authenticated()
-                )
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
 
+                .authorizeHttpRequests(auth -> auth
+                        // 2. Explicitly permit OPTIONS for everything
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/flights/**").authenticated()
+                        .requestMatchers("/api/boarding/**").authenticated()
+                        .requestMatchers("/api/reports/**").hasAnyAuthority("USER", "SUPERVISOR")
+                        .anyRequest().authenticated()
+                )
+
+                // 3. Add the provider and filter
                 .authenticationProvider(authenticationProvider)
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
