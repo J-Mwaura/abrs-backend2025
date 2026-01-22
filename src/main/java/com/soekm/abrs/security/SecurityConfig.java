@@ -52,7 +52,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/flights/**").authenticated()
                         .requestMatchers("/api/boarding/**").authenticated()
-                        .requestMatchers("/api/reports/**").hasAnyAuthority("ROLE_USER", "ROLE_SUPERVISOR")
+                        .requestMatchers("/api/reports/**"). authenticated()//hasAnyAuthority("ROLE_USER", "ROLE_SUPERVISOR")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2

@@ -35,7 +35,7 @@ public class ReportController {
                 .headers(headers)
                 .body(pdfContent);
     }
-}
+
 
 //    @PreAuthorize("hasAnyRole('USER', 'SUPERVISOR')")
 //    @GetMapping("/boarding/{flightId}")
@@ -61,4 +61,4 @@ public class ReportController {
 //                .headers(headers)
 //                .body(pdfContent);
 //    }
-//}
+}
