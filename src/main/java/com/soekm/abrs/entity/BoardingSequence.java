@@ -35,6 +35,15 @@ public class BoardingSequence {
     @JoinColumn(name = "flight_id", nullable = false)
     private Flight flight;
 
+    @OneToMany(
+            mappedBy = "sequence",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+
+    @Builder.Default
+    private java.util.Set<BoardingEvent> events = new java.util.HashSet<>();
+
     @Column(name = "sequence_number", nullable = false)
     private Integer sequenceNumber; // e.g. 042
 
