@@ -10,17 +10,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.Map;
 
-/**
- * @author James Mwaura
- * 2026
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -28,47 +27,67 @@ public class AuthService {
 
     private final IUserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
-    private final JwtService jwtService;
+    private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
 
-    // --- Password login ---
+    // --- Password login (Standard Username/Password) ---
     public Map<String, Object> authenticateWithPassword(PasswordLoginRequest request) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getUsername(),
+                            request.getPassword()
+                    )
+            );
 
-        AppUser user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+            SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BadCredentialsException("Invalid password");
+            // In Spring Security, principal is usually the UserDetails object
+            AppUser user = userRepository.findByUsername(request.getUsername())
+                    .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+            return buildAuthResponse(user);
+        } catch (BadCredentialsException e) {
+            log.error("Invalid password for user: {}", request.getUsername());
+            throw new BadCredentialsException("Invalid username or password");
         }
-
-        return buildAuthResponse(user);
     }
 
-    // --- PIN login ---
+    // --- PIN login (Phone/PIN) ---
     public Map<String, Object> authenticateWithPin(PinLoginRequest request) {
-
         AppUser user = userRepository.findByPhone(request.getPhone())
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                .orElseThrow(() -> new UsernameNotFoundException("User with phone " + request.getPhone() + " not found"));
 
+        // Use passwordEncoder to match the encrypted PIN from the DB
         if (!passwordEncoder.matches(request.getPin(), user.getPin())) {
             throw new BadCredentialsException("Invalid PIN");
         }
 
+        // Manually set authentication for the security context
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user, null, user.getAuthorities()
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
         return buildAuthResponse(user);
     }
 
-    // --- Common JWT + response builder ---
+    // --- Unified Response Builder (Carwash Style) ---
     private Map<String, Object> buildAuthResponse(AppUser user) {
-        String token = jwtService.generateToken(user);
+        String token = jwtTokenProvider.createToken(user);
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(user);
 
-        return Map.of(
-                "accessToken", token,
-                "refreshToken", refreshToken.getToken(),
-                "username", user.getUsername(),
-                "roles", user.getAuthorities().stream()
-                        .map(GrantedAuthority::getAuthority)
-                        .toList()
-        );
+        Map<String, Object> response = new HashMap<>();
+        response.put("accessToken", token);
+        response.put("refreshToken", refreshToken.getToken());
+        response.put("tokenType", "Bearer");
+        response.put("username", user.getUsername());
+        response.put("user", user); // Includes full user details for Angular state
+        response.put("roles", user.getAuthorities().stream()
+                .map(auth -> auth.getAuthority())
+                .toList());
+
+        return response;
     }
 }

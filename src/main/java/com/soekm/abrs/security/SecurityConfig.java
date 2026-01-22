@@ -1,68 +1,67 @@
 package com.soekm.abrs.security;
 
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import javax.crypto.spec.SecretKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-/**
- * @author James Mwaura
- * 2026
- */
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
+@EnableMethodSecurity
 public class SecurityConfig {
+
+    @Value("${application.security.jwt.secret-key}")
+    private String jwtSecretKey;
 
     @Value("${cors.allowed-origins}")
     private String[] allowedOrigins;
-    private final JwtAuthenticationFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+
+    private final JwtToUserConverter jwtToUserConverter;
+
+    public SecurityConfig(JwtToUserConverter jwtToUserConverter) {
+        this.jwtToUserConverter = jwtToUserConverter;
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 1. Force CORS to be processed FIRST
+        return http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
-
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
-
                 .authorizeHttpRequests(auth -> auth
-                        // 2. Explicitly permit OPTIONS for everything
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/flights/**").authenticated()
                         .requestMatchers("/api/boarding/**").authenticated()
-                        .requestMatchers("/api/reports/**").hasAnyAuthority("USER", "SUPERVISOR")
+                        .requestMatchers("/api/reports/**").hasAnyAuthority("ROLE_USER", "ROLE_SUPERVISOR")
                         .anyRequest().authenticated()
                 )
-
-                // 3. Add the provider and filter
-                .authenticationProvider(authenticationProvider)
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-
-        return http.build();
+                .oauth2ResourceServer(oauth2 -> oauth2
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtToUserConverter))
+                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .build();
     }
 
-
-    // ✅ GLOBAL CORS CONFIGURATION
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -92,8 +91,8 @@ public class SecurityConfig {
         allOrigins.addAll(mobileOrigins);
         configuration.setAllowedOrigins(allOrigins);
 
-        // Allowed methods
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Allowed methods (ADD PATCH for boarding endpoint)
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
         // Critical headers for mobile apps
         configuration.setAllowedHeaders(Arrays.asList(
@@ -104,7 +103,7 @@ public class SecurityConfig {
                 "Origin",
                 "Access-Control-Request-Method",
                 "Access-Control-Request-Headers",
-                "X-Capacitor-Referer"  // Important for Capacitor
+                "X-Capacitor-Referer"
         ));
 
         // Exposed headers
@@ -121,4 +120,27 @@ public class SecurityConfig {
         return source;
     }
 
+    @Bean
+    public JwtDecoder jwtDecoder() {
+        // We must use the SAME padding logic as your JwtTokenProvider init() method
+        byte[] keyBytes = jwtSecretKey.getBytes();
+        if (keyBytes.length < 32) {
+            keyBytes = Arrays.copyOf(keyBytes, 32);
+        }
+        SecretKeySpec secretKey = new SecretKeySpec(keyBytes, "HmacSHA256");
+
+        return NimbusJwtDecoder.withSecretKey(secretKey)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }
