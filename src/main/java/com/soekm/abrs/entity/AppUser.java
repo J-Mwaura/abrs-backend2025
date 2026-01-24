@@ -1,5 +1,6 @@
 package com.soekm.abrs.entity;
 
+import com.soekm.abrs.entity.enums.StaffType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -25,6 +26,12 @@ import java.util.stream.Collectors;
 @Table(name = "users")
 public class AppUser extends AbstractEntity implements UserDetails {
 
+    @Column(nullable = false)
+    private String firstName;
+
+    @Column(nullable = false)
+    private String lastName;
+
     @Column(unique = true, nullable = false)
     private String username;
 
@@ -43,6 +50,9 @@ public class AppUser extends AbstractEntity implements UserDetails {
     @Builder.Default
     private boolean usePinLogin = false;
 
+    @Enumerated(EnumType.STRING)
+    private StaffType staffType;
+
     @Builder.Default
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -51,6 +61,10 @@ public class AppUser extends AbstractEntity implements UserDetails {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

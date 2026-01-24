@@ -15,13 +15,11 @@ public interface IUserRepository extends JpaRepository<AppUser, Long> {
 
     // Used for the main login flow and PIN verification
     Optional<AppUser> findByUsername(String username);
-
     Optional<AppUser> findByPhone(String phone);
-
-    // Used during registration to ensure no duplicate emails
     Optional<AppUser> findByEmail(String email);
 
     // Helper methods for validation checks
     Boolean existsByUsername(String username);
     Boolean existsByEmail(String email);
+    boolean existsByPhone(String phone);
 }

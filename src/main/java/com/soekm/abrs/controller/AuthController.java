@@ -2,7 +2,9 @@ package com.soekm.abrs.controller;
 
 import com.soekm.abrs.dto.PasswordLoginRequest;
 import com.soekm.abrs.dto.PinLoginRequest;
+import com.soekm.abrs.dto.response.ApiResponse;
 import com.soekm.abrs.security.AuthService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +31,13 @@ public class AuthController {
             ));
         }
     }
+
+//    @PostMapping("/login/pin")
+//    public ResponseEntity<ApiResponse<Map<String, Object>>> loginWithPin(@Valid @RequestBody PinLoginRequest request) {
+//        // No try-catch here. If it fails, GlobalExceptionHandler takes over.
+//        Map<String, Object> response = authService.authenticateWithPin(request);
+//        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
+//    }
 
     // --- PIN login endpoint ---
     @PostMapping("/login/pin")
