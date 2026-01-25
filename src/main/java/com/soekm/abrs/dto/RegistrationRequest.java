@@ -27,6 +27,6 @@ public record RegistrationRequest(
         @Size(min = 6, message = "Password must be at least 8 characters")
         String password,
 
-        @Size(min = 4, max = 4, message = "PIN must be exactly 4 digits")
+        @Size(min = 4, max = 6, message = "PIN must be exactly 4 digits")
         String pin
 ) {}
