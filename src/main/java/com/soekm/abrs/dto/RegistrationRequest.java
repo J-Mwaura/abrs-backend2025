@@ -24,7 +24,7 @@ public record RegistrationRequest(
         @NotBlank(message = "Phone is required")
         String phone,
 
-        @Size(min = 8, message = "Password must be at least 8 characters")
+        @Size(min = 6, message = "Password must be at least 8 characters")
         String password,
 
         @Size(min = 4, max = 4, message = "PIN must be exactly 4 digits")
