@@ -28,8 +28,5 @@ public record RegistrationRequest(
         String password,
 
         @Size(min = 4, max = 4, message = "PIN must be exactly 4 digits")
-        String pin,
-
-        @NotNull(message = "Staff type is required")
-        StaffType staffType
+        String pin
 ) {}

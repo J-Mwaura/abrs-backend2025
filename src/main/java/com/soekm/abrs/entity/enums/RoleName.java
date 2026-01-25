@@ -6,9 +6,8 @@ package com.soekm.abrs.entity.enums;
  */
 
 public enum RoleName {
-	USER,
+    ATTENDANT,
+    SUPERVISOR,
     MANAGER,
-    ADMIN,
-    SUPERADMIN
-
+    ADMIN
 }

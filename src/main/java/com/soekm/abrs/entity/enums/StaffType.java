@@ -6,7 +6,8 @@ package com.soekm.abrs.entity.enums;
  */
 
 public enum StaffType {
-    attendant,
-    supervisor,
-    manager
+    ATTENDANT,
+    SUPERVISOR,
+    MANAGER,
+    ADMIN
 }

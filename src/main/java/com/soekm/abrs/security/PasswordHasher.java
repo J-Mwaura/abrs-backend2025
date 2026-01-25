@@ -4,11 +4,13 @@ import com.soekm.abrs.entity.AppUser;
 import com.soekm.abrs.repository.IUserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Profile("dev")
 public class PasswordHasher implements CommandLineRunner {
 
     private final PasswordEncoder passwordEncoder;

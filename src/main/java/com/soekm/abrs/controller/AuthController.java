@@ -2,11 +2,13 @@ package com.soekm.abrs.controller;
 
 import com.soekm.abrs.dto.PasswordLoginRequest;
 import com.soekm.abrs.dto.PinLoginRequest;
+import com.soekm.abrs.dto.RegistrationRequest;
 import com.soekm.abrs.dto.response.ApiResponse;
-import com.soekm.abrs.security.AuthService;
+import com.soekm.abrs.security.iService.IAuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -16,7 +18,13 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
-    private final AuthService authService;
+    private final IAuthService authService;
+
+    @PostMapping("/register")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> register(@Valid @RequestBody RegistrationRequest request) {
+        return authService.register(request);
+    }
 
     // --- Password login endpoint ---
     @PostMapping("/login/password")
@@ -32,25 +40,12 @@ public class AuthController {
         }
     }
 
-//    @PostMapping("/login/pin")
-//    public ResponseEntity<ApiResponse<Map<String, Object>>> loginWithPin(@Valid @RequestBody PinLoginRequest request) {
-//        // No try-catch here. If it fails, GlobalExceptionHandler takes over.
-//        Map<String, Object> response = authService.authenticateWithPin(request);
-//        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
-//    }
-
     // --- PIN login endpoint ---
-    @PostMapping("/login/pin")
-    public ResponseEntity<?> loginWithPin(@RequestBody PinLoginRequest request) {
-        try {
-            Map<String, Object> response = authService.authenticateWithPin(request);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "PIN login failed",
-                    "message", e.getMessage()
-            ));
-        }
+   @PostMapping("/login/pin")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> loginWithPin(@Valid @RequestBody PinLoginRequest request) {
+        // No try-catch here. If it fails, GlobalExceptionHandler takes over.
+        Map<String, Object> response = authService.authenticateWithPin(request);
+        return ResponseEntity.ok(ApiResponse.success("Login successful", response));
     }
 
     // Add refresh token endpoint if needed

@@ -8,6 +8,7 @@ import com.soekm.abrs.entity.AppUser;
 import com.soekm.abrs.entity.RefreshToken;
 import com.soekm.abrs.entity.Role;
 import com.soekm.abrs.entity.enums.RoleName;
+import com.soekm.abrs.entity.enums.StaffType;
 import com.soekm.abrs.exceptions.RoleNotFoundException;
 import com.soekm.abrs.repository.IUserRepository;
 import com.soekm.abrs.repository.RoleRepository;
@@ -29,6 +30,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,20 +76,27 @@ public class AuthService implements IAuthService {
     // --- PIN login (Phone/PIN) ---
     @Override
     public Map<String, Object> authenticateWithPin(PinLoginRequest request) {
+        // 1. Find the user by phone (Standard for Mobile/Ionic apps)
         AppUser user = userRepository.findByPhone(request.getPhone())
                 .orElseThrow(() -> new UsernameNotFoundException("User with phone " + request.getPhone() + " not found"));
 
-        // Use passwordEncoder to match the encrypted PIN from the DB
+        // 2. Security Check: Is this user allowed to use PIN login?
+        if (!user.isUsePinLogin()) {
+            throw new BadCredentialsException("PIN login is not enabled for this account");
+        }
+
+        // 3. Verify the PIN (Matches request raw PIN with DB BCrypt hash)
         if (!passwordEncoder.matches(request.getPin(), user.getPin())) {
             throw new BadCredentialsException("Invalid PIN");
         }
 
-        // Manually set authentication for the security context
+        // 4. Set Security Context (This tells Spring the user is now "Logged In")
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user, null, user.getAuthorities()
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        // 5. Generate Response (Token + User details)
         return buildAuthResponse(user);
     }
 
@@ -112,17 +121,17 @@ public class AuthService implements IAuthService {
     @Override
     @Transactional
     public ResponseEntity<ApiResponse<Map<String, Object>>> register(@Valid RegistrationRequest request) {
-        // 1. Password/PIN Encoding
-        var bCryptEncoder = new BCryptPasswordEncoder();
 
-        // 2. Role Resolution (Will throw RoleNotFoundException if missing)
-        Role userRole = roleRepository.findByRoleName(RoleName.USER)
-                .orElseThrow(() -> new RoleNotFoundException("Error: Role '" + RoleName.USER + "' is not found."));
+        // 1. Role & StaffType Resolution (Hardcoded to ATTENDANT)
+        // Since request no longer provides it, we default here.
+        StaffType defaultStaffType = StaffType.ATTENDANT;
 
-        // 3. Business Logic Validation
-        // Throwing IllegalStateException ensures your GlobalExceptionHandler sends a clean ApiResponse.error()
-        if (repository.existsByUsername(request.firstName())) {
-            throw new IllegalStateException("Username is already taken");
+        Role userRole = roleRepository.findByRoleName(RoleName.ATTENDANT)
+                .orElseThrow(() -> new RoleNotFoundException("Error: Role 'ATTENDANT' not found."));
+
+        // 2. Business Logic Validation
+        if (repository.existsByUsername(request.username())) {
+            throw new IllegalStateException("Username '" + request.username() + "' is already taken");
         }
         if (repository.existsByEmail(request.email())) {
             throw new IllegalStateException("Email is already registered");
@@ -131,29 +140,31 @@ public class AuthService implements IAuthService {
             throw new IllegalStateException("Phone number is already registered");
         }
 
-        // 4. Unified Entity Creation
+        // 3. Unified Entity Creation
+        // Note: Using the injected passwordEncoder bean
         AppUser appUser = AppUser.builder()
-                .firstName(request.firstName())  // Removed the "get"
+                .firstName(request.firstName())
                 .lastName(request.lastName())
                 .username(request.username())
                 .email(request.email())
                 .phone(request.phone())
-                .staffType(request.staffType())
-                .password(bCryptEncoder.encode(request.password()))
-                .pin(bCryptEncoder.encode(request.pin()))
+                .staffType(defaultStaffType)
+                .password(passwordEncoder.encode(request.password()))
+                .pin(passwordEncoder.encode(request.pin()))
+                .roles(new HashSet<>(Set.of(userRole))) // Use HashSet for JPA compatibility
                 .usePinLogin(true)
-                .roles(Set.of(userRole))
                 .build();
 
         repository.save(appUser);
 
-        // 5. Response Building
-        String jwtToken = jwtService.generateToken(appUser);
-
+        // 4. Response Building
+        // No JWT is generated here because an Admin is performing this action
         Map<String, Object> data = new HashMap<>();
-        data.put("token", jwtToken);
         data.put("user", appUser);
 
-        return ResponseEntity.ok(ApiResponse.success("Registration successful", data));
+        return ResponseEntity.ok(ApiResponse.success(
+                "Staff member " + appUser.getUsername() + " registered successfully as ATTENDANT",
+                data
+        ));
     }
 }
